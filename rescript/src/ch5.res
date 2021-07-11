@@ -25,13 +25,13 @@ let rec getFunDef = (f: string, fds: list<funDefC>) => {
 
 let fdCarg = fd => {
   switch fd {
-  | FdC(n, a, b) => a
+  | FdC(_, a, _) => a
   }
 }
 
 let fdCbody = fd => {
   switch fd {
-  | FdC(n, a, b) => b
+  | FdC(_, _, b) => b
   }
 }
 
@@ -80,18 +80,13 @@ let rec desugar = (ars) => {
     | IfCondS(p, c, a) => IfCondC(desugar(p), desugar(c), desugar(a))
   }
 }
+let fd1 = FdC("double", "x", PlusC(IdC("x"), NumC(5)));
+let fd2 = FdC("quad", "x", AppC("double", AppC("double", IdC("x"))));
+let fd3 = FdC("const5", "_", NumC(5));
 
-let an = interp(PlusC(MultC(NumC(2), NumC(4)), NumC(3)));
+let an = interp(PlusC(MultC(AppC("double", NumC(2)), NumC(4)), NumC(3)), list{fd1, fd2, fd3});
 
-let an1 = interp(desugar(PlusS(SquareS(NumS(8)), NumS(3))));
+Js.log(an);
 
-type rec inputList =
-	| Str(string)
-	| Lt(array<inputList>)
+let an1 = interp(desugar(PlusS(SquareS(NumS(8)), NumS(3))), list{fd1, fd2, fd3});
 
-let numFromStr = str => switch Belt.Int.fromString(str) {
-  | None => 0;
-  | Some(n) => n;
-}
-
-let a = numFromStr("22")
