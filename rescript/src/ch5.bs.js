@@ -3,18 +3,92 @@
 
 var Belt_Int = require("rescript/lib/js/belt_Int.js");
 
-function interp(_exp) {
+function getFunDef(f, _fds) {
+  while(true) {
+    var fds = _fds;
+    if (fds) {
+      var a = fds.hd;
+      if (f === a._0) {
+        return a;
+      }
+      _fds = fds.tl;
+      continue ;
+    }
+    throw {
+          RE_EXN_ID: "Not_found",
+          Error: new Error()
+        };
+  };
+}
+
+function fdCarg(fd) {
+  return fd._1;
+}
+
+function fdCbody(fd) {
+  return fd._2;
+}
+
+function subst(wat, forr, inn) {
+  switch (inn.TAG | 0) {
+    case /* NumC */0 :
+        return inn;
+    case /* IdC */1 :
+        if (inn._0 === forr) {
+          return wat;
+        } else {
+          return inn;
+        }
+    case /* AppC */2 :
+        return {
+                TAG: /* AppC */2,
+                _0: inn._0,
+                _1: subst(wat, forr, inn._1)
+              };
+    case /* PlusC */3 :
+        return {
+                TAG: /* PlusC */3,
+                _0: subst(wat, forr, inn._0),
+                _1: subst(wat, forr, inn._1)
+              };
+    case /* MultC */4 :
+        return {
+                TAG: /* MultC */4,
+                _0: subst(wat, forr, inn._0),
+                _1: subst(wat, forr, inn._1)
+              };
+    case /* IfCondC */5 :
+        return {
+                TAG: /* IfCondC */5,
+                _0: subst(wat, forr, inn._0),
+                _1: subst(wat, forr, inn._1),
+                _2: subst(wat, forr, inn._2)
+              };
+    
+  }
+}
+
+function interp(_exp, fds) {
   while(true) {
     var exp = _exp;
     switch (exp.TAG | 0) {
       case /* NumC */0 :
           return exp._0;
-      case /* PlusC */1 :
-          return interp(exp._0) + interp(exp._1) | 0;
-      case /* MultC */2 :
-          return Math.imul(interp(exp._0), interp(exp._1));
-      case /* IfCondC */3 :
-          if (interp(exp._0) === 0) {
+      case /* IdC */1 :
+          throw {
+                RE_EXN_ID: "Not_found",
+                Error: new Error()
+              };
+      case /* AppC */2 :
+          var fd = getFunDef(exp._0, fds);
+          _exp = subst(exp._1, fdCarg(fd), fdCbody(fd));
+          continue ;
+      case /* PlusC */3 :
+          return interp(exp._0, fds) + interp(exp._1, fds) | 0;
+      case /* MultC */4 :
+          return Math.imul(interp(exp._0, fds), interp(exp._1, fds));
+      case /* IfCondC */5 :
+          if (interp(exp._0, fds) === 0) {
             _exp = exp._2;
             continue ;
           }
@@ -34,22 +108,22 @@ function desugar(ars) {
               };
     case /* PlusS */1 :
         return {
-                TAG: /* PlusC */1,
+                TAG: /* PlusC */3,
                 _0: desugar(ars._0),
                 _1: desugar(ars._1)
               };
     case /* MultS */2 :
         return {
-                TAG: /* MultC */2,
+                TAG: /* MultC */4,
                 _0: desugar(ars._0),
                 _1: desugar(ars._1)
               };
     case /* MinusS */3 :
         return {
-                TAG: /* PlusC */1,
+                TAG: /* PlusC */3,
                 _0: desugar(ars._0),
                 _1: {
-                  TAG: /* MultC */2,
+                  TAG: /* MultC */4,
                   _0: {
                     TAG: /* NumC */0,
                     _0: -1
@@ -60,13 +134,13 @@ function desugar(ars) {
     case /* SquareS */4 :
         var l = ars._0;
         return {
-                TAG: /* PlusC */1,
+                TAG: /* PlusC */3,
                 _0: desugar(l),
                 _1: desugar(l)
               };
     case /* IfCondS */5 :
         return {
-                TAG: /* IfCondC */3,
+                TAG: /* IfCondC */5,
                 _0: desugar(ars._0),
                 _1: desugar(ars._1),
                 _2: desugar(ars._2)
@@ -75,39 +149,47 @@ function desugar(ars) {
   }
 }
 
-var an = interp({
-      TAG: /* PlusC */1,
+var partial_arg = {
+  TAG: /* PlusC */3,
+  _0: {
+    TAG: /* MultC */4,
+    _0: {
+      TAG: /* NumC */0,
+      _0: 2
+    },
+    _1: {
+      TAG: /* NumC */0,
+      _0: 4
+    }
+  },
+  _1: {
+    TAG: /* NumC */0,
+    _0: 3
+  }
+};
+
+function an(param) {
+  return interp(partial_arg, param);
+}
+
+var partial_arg$1 = desugar({
+      TAG: /* PlusS */1,
       _0: {
-        TAG: /* MultC */2,
+        TAG: /* SquareS */4,
         _0: {
-          TAG: /* NumC */0,
-          _0: 2
-        },
-        _1: {
-          TAG: /* NumC */0,
-          _0: 4
+          TAG: /* NumS */0,
+          _0: 8
         }
       },
       _1: {
-        TAG: /* NumC */0,
+        TAG: /* NumS */0,
         _0: 3
       }
     });
 
-var an1 = interp(desugar({
-          TAG: /* PlusS */1,
-          _0: {
-            TAG: /* SquareS */4,
-            _0: {
-              TAG: /* NumS */0,
-              _0: 8
-            }
-          },
-          _1: {
-            TAG: /* NumS */0,
-            _0: 3
-          }
-        }));
+function an1(param) {
+  return interp(partial_arg$1, param);
+}
 
 function numFromStr(str) {
   var n = Belt_Int.fromString(str);
@@ -120,10 +202,14 @@ function numFromStr(str) {
 
 var a = numFromStr("22");
 
+exports.getFunDef = getFunDef;
+exports.fdCarg = fdCarg;
+exports.fdCbody = fdCbody;
+exports.subst = subst;
 exports.interp = interp;
 exports.desugar = desugar;
 exports.an = an;
 exports.an1 = an1;
 exports.numFromStr = numFromStr;
 exports.a = a;
-/* an Not a pure module */
+/* partial_arg Not a pure module */

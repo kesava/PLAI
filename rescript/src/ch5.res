@@ -1,16 +1,63 @@
-type rec arithC =
+type rec exprC =
   | NumC(int)
-  | PlusC(arithC, arithC)
-  | MultC(arithC, arithC)
-  | IfCondC(arithC, arithC, arithC)
+  | IdC(string)
+  | AppC(string, exprC)
+  | PlusC(exprC, exprC)
+  | MultC(exprC, exprC)
+  | IfCondC(exprC, exprC, exprC)
 
+type name = string
+type arg = string
+type body = exprC
+type funDefC = 
+  | FdC(name, arg, body)
 
-let rec interp = (exp) => {
+let rec getFunDef = (f: string, fds: list<funDefC>) => {
+  switch fds {
+  | list{} => raise(Not_found)
+  | list{a, ...rest} => {
+    switch a {
+      | FdC(fname, _, _) => if (f === fname) { a } else { getFunDef(f, rest) };
+    }
+    }
+  }
+}
+
+let fdCarg = fd => {
+  switch fd {
+  | FdC(n, a, b) => a
+  }
+}
+
+let fdCbody = fd => {
+  switch fd {
+  | FdC(n, a, b) => b
+  }
+}
+
+let rec subst = (wat: exprC, forr: string, inn: exprC) => {
+  switch inn {
+  | NumC(_) => inn;
+  | IdC(sym) => if (sym === forr) { wat } else { inn };
+  | PlusC(l, r) => PlusC(subst(wat, forr, l), subst(wat, forr, r));
+  | MultC(l, r) => MultC(subst(wat, forr, l), subst(wat, forr, r));
+  | IfCondC(p, c, a) => IfCondC(subst(wat, forr, p), subst(wat, forr, c), subst(wat, forr, a));
+  | AppC(f, a) => AppC(f, subst(wat, forr, a));
+  ;
+  }
+}
+
+let rec interp = (exp, fds) => {
   switch exp {
     | NumC(n) => n;
-    | PlusC(l, r) => interp(l) + interp(r);
-    | MultC(l, r) => interp(l) * interp(r);
-    | IfCondC(p, c, a) => if (interp(p) == 0) { interp(a) } else { interp(c) };
+    | IdC(_) => raise(Not_found);
+    | AppC(f, a) => {
+      let fd = getFunDef(f, fds);
+      interp(subst(a, fdCarg(fd), fdCbody(fd)), fds);
+    };
+    | PlusC(l, r) => interp(l, fds) + interp(r, fds);
+    | MultC(l, r) => interp(l, fds) * interp(r, fds);
+    | IfCondC(p, c, a) => if (interp(p, fds) == 0) { interp(a, fds) } else { interp(c, fds) };
   }
 }
 
@@ -41,8 +88,6 @@ let an1 = interp(desugar(PlusS(SquareS(NumS(8)), NumS(3))));
 type rec inputList =
 	| Str(string)
 	| Lt(array<inputList>)
-
-
 
 let numFromStr = str => switch Belt.Int.fromString(str) {
   | None => 0;
