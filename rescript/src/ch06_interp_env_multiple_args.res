@@ -99,11 +99,13 @@ let fd2 = FdC("quad", list{"x"}, AppC("double", list{AppC("double", list{IdC("x"
 let fd3 = FdC("const5", list{"_"}, NumC(5));
 let fd4 = FdC("add", list{"x", "y"}, PlusC(IdC("x"), IdC("y")));
 
+// (+ (* (double 2) 4) 3)
 let an = interp(PlusC(MultC(AppC("double", list{NumC(2)}), NumC(4)), NumC(3)), mtEnv, list{fd1, fd2, fd3});
 
 Js.log(an);
 // 31
 
+// (+ (* (add 2 8) 4) 3)
 let an1 = interp(PlusC(MultC(AppC("add", list{NumC(2), NumC(8)}), NumC(4)), NumC(3)), mtEnv, list{fd1, fd2, fd3, fd4});
 Js.log(an1);
 // 43

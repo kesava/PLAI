@@ -30,7 +30,7 @@
     [appC (f a) (local ([define fd (get-fundef f fds)])
                   (interp (fdC-body fd) (extend-env (bind (fdC-arg fd)
                                                           (interp a env fds))
-                                                    env) fds))]
+                                                    mt-Env) fds))]
     [plusC (l r) (+ (interp l env fds) (interp r env fds))]
     [ifCondC (p c a) (if (>= (interp p env fds) 0) (interp c env fds) (interp a env fds))]
     [multC (l r) (* (interp l env fds) (interp r env fds))]))
@@ -44,7 +44,7 @@
 
 (define (lookup [n : symbol] [env : Env]) : number
   (cond
-    [(empty? env) (error 'lookup "name not found")]
+    [(empty? env) (error 'lookup (string-append (symbol->string n) " - variable not found"))]
     [else (cond
             [(symbol=? n (bind-name (first env))) (bind-value (first env))]
             [else (lookup n (rest env))])]))
@@ -87,7 +87,7 @@
 
 (test (interp (plusC (numC 2) (numC 3)) mt-Env (list fd1)) 5)
 (test (interp (multC (plusC (idC 'x) (numC 3)) (numC 4)) (extend-env (bind 'x 5) mt-Env) (list fd1)) 32)
-(test (interp (appC 'double (idC 'x)) (extend-env (bind 'x 5) mt-Env ) (list fd1)) 10)
+(test (interp (appC 'double (idC 'x)) (extend-env (bind 'x 5) mt-Env) (list fd1)) 10)
 (test (interp (appC 'quad (idC 'x)) (extend-env (bind 'x 5) mt-Env) (list fd1 fd2)) 20)
 
 (interp (appC 'f1 (numC 3))
