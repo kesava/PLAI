@@ -34,30 +34,36 @@ let fdCbody = fd => {
   | FdC(_, _, b) => b
   }
 }
+type val = int
+type binding =
+  | Bind(name, val)
 
-let rec subst = (wat: exprC, forr: string, inn: exprC) => {
-  switch inn {
-  | NumC(_) => inn;
-  | IdC(sym) => if (sym === forr) { wat } else { inn };
-  | PlusC(l, r) => PlusC(subst(wat, forr, l), subst(wat, forr, r));
-  | MultC(l, r) => MultC(subst(wat, forr, l), subst(wat, forr, r));
-  | IfCondC(p, c, a) => IfCondC(subst(wat, forr, p), subst(wat, forr, c), subst(wat, forr, a));
-  | AppC(f, a) => AppC(f, subst(wat, forr, a));
-  ;
+type env = list<binding>
+let mtEnv: env = list{}
+let extendEnv = Belt.List.add
+
+let rec lookup = (n, env) => {
+  switch env {
+  | list{} => raise(Not_found)
+  | list{a, ...rest} => {
+    switch a {
+    | Bind(k, v) => if (k === n) { v } else { lookup(n, rest)}
+    }
+    }
   }
 }
 
-let rec interp = (exp, fds) => {
+let rec interp = (exp, env, fds) => {
   switch exp {
     | NumC(n) => n;
-    | IdC(_) => raise(Not_found);
+    | IdC(id) => lookup(id, env);
     | AppC(f, a) => {
       let fd = getFunDef(f, fds);
-      interp(subst(a, fdCarg(fd), fdCbody(fd)), fds);
+      interp(fdCbody(fd), extendEnv(env, Bind(fdCarg(fd), interp(a, env, fds))), fds);
     };
-    | PlusC(l, r) => interp(l, fds) + interp(r, fds);
-    | MultC(l, r) => interp(l, fds) * interp(r, fds);
-    | IfCondC(p, c, a) => if (interp(p, fds) == 0) { interp(a, fds) } else { interp(c, fds) };
+    | PlusC(l, r) => interp(l, env, fds) + interp(r, env, fds);
+    | MultC(l, r) => interp(l, env, fds) * interp(r, env, fds);
+    | IfCondC(p, c, a) => if (interp(p, env, fds) == 0) { interp(a, env, fds) } else { interp(c, env, fds) };
   }
 }
 
@@ -84,9 +90,10 @@ let fd1 = FdC("double", "x", PlusC(IdC("x"), NumC(5)));
 let fd2 = FdC("quad", "x", AppC("double", AppC("double", IdC("x"))));
 let fd3 = FdC("const5", "_", NumC(5));
 
-let an = interp(PlusC(MultC(AppC("double", NumC(2)), NumC(4)), NumC(3)), list{fd1, fd2, fd3});
+let an = interp(PlusC(MultC(AppC("double", NumC(2)), NumC(4)), NumC(3)), mtEnv, list{fd1, fd2, fd3});
 
 Js.log(an);
+// 31
 
-let an1 = interp(desugar(PlusS(SquareS(NumS(8)), NumS(3))), list{fd1, fd2, fd3});
+let an1 = interp(desugar(PlusS(SquareS(NumS(8)), NumS(3))), mtEnv, list{fd1, fd2, fd3});
 
