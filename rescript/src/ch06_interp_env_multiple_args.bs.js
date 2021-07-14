@@ -298,7 +298,7 @@ var an1 = interp({
       }
     });
 
-console.log(an);
+console.log(an1);
 
 var an2 = interp(desugar({
           TAG: /* PlusS */1,

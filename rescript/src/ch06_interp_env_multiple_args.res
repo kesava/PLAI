@@ -105,7 +105,7 @@ Js.log(an);
 // 31
 
 let an1 = interp(PlusC(MultC(AppC("add", list{NumC(2), NumC(8)}), NumC(4)), NumC(3)), mtEnv, list{fd1, fd2, fd3, fd4});
-Js.log(an);
+Js.log(an1);
 // 43
 
 let an2 = interp(desugar(PlusS(SquareS(NumS(8)), NumS(3))), mtEnv, list{fd1, fd2, fd3});
