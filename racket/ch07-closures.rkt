@@ -29,10 +29,11 @@
     [idC (n) (lookup n env)]
     [lamC (a b) (closV a b env)]
     [appC (f a) (local ([define f-value (interp f env)])
-                               (interp (closV-body f-value) (extend-env (bind (closV-arg f-value)
+                  (cond
+                    [(closV? f-value) (interp (closV-body f-value) (extend-env (bind (closV-arg f-value)
                                                           (interp a env))
-                                                   (closV-env f-value))))]
-                  ;;[else (error 'interp "function definition is incorrect")])]
+                                                   (closV-env f-value)))]
+                  [else (error 'interp "function definition is incorrect")]))]
     [plusC (l r) (num+ (interp l env) (interp r env))]
     ;; [ifCondC (p c a) (if (>= (interp p env) 0) (interp c env) (interp a env))]
     [multC (l r) (num* (interp l env) (interp r env))]))
